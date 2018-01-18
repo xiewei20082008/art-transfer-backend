@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path"
 )
 
 type Task struct {
@@ -18,10 +22,34 @@ type TaskQueue struct {
 }
 
 var taskQueue *TaskQueue
+var workDir = "~/work-dir/"
 
 //InitTaskQueue before use
 func InitTaskQueue() {
 	taskQueue = &TaskQueue{downloadQ: make(chan Task, 100), transferQ: make(chan Task, 100)}
+}
+
+func downloadFile(picURL string, picHash string) (bool, error) {
+	downloadPath := path.Join(workDir, picHash, "src.jpg")
+	if _, err := os.Stat(downloadPath); err == nil {
+		fmt.Println("file already existed.")
+		return true, nil
+	}
+	out, err := os.Create(downloadPath)
+	if err != nil {
+		return false, err
+	}
+	defer out.Close()
+	resp, err := http.Get(picURL)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (taskQ TaskQueue) addNewTask(taskid int, picURL string, picHash string, style string) {
@@ -33,8 +61,12 @@ func (taskQ TaskQueue) addNewTask(taskid int, picURL string, picHash string, sty
 func (taskQ TaskQueue) tDownload() {
 	for {
 		downloadTask := <-taskQ.downloadQ
-		fmt.Printf("%v %v %v\n", downloadTask.Taskid, downloadTask.PicURL, downloadTask.Style)
-		fmt.Printf("Add to transferQ\n")
+		fmt.Printf("downloading %v\n", downloadTask.PicURL)
+		_, err := downloadFile(downloadTask.PicURL, downloadTask.PicHash)
+		if err != nil {
+			fmt.Printf("Failed to download pic %v\n", downloadTask.PicURL)
+			taskQ.downloadQ <- downloadTask
+		}
 		taskQ.transferQ <- downloadTask
 	}
 }
@@ -42,7 +74,7 @@ func (taskQ TaskQueue) tDownload() {
 func (taskQ TaskQueue) tTransferArt() {
 	for {
 		transferTask := <-taskQ.transferQ
-		fmt.Printf("%v %v %v\n", transferTask.Taskid, transferTask.PicURL, transferTask.Style)
+		fmt.Printf("transferring %v with style %v\n", transferTask.PicURL, transferTask.Style)
 		fmt.Printf("transferQ solved\n")
 	}
 }

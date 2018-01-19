@@ -29,6 +29,15 @@ func InitTaskQueue() {
 	taskQueue = &TaskQueue{downloadQ: make(chan Task, 100), transferQ: make(chan Task, 100)}
 }
 
+func copy(src string, dst string) {
+	srcFile, _ := os.Open(src)
+	defer srcFile.Close()
+	destFile, _ := os.Create(dst) // creates if file doesn't exist
+	defer destFile.Close()
+	io.Copy(destFile, srcFile) // check first var for number of bytes copied
+	destFile.Sync()
+}
+
 func downloadFile(picURL string, picHash string) (bool, error) {
 	downloadDir := path.Join(workDir, picHash)
 	downloadPath := path.Join(downloadDir, "src.jpg")
@@ -86,6 +95,11 @@ func (taskQ TaskQueue) tTransferArt() {
 	for {
 		transferTask := <-taskQ.transferQ
 		fmt.Printf("transferring %v with style %v\n", transferTask.PicURL, transferTask.Style)
+		artPath := path.Join(workDir, transferTask.PicHash, transferTask.Style)
+		os.MkdirAll(artPath, os.ModePerm)
+		downloadDir := path.Join(workDir, transferTask.PicHash)
+		downloadPath := path.Join(downloadDir, "src.jpg")
+		copy(downloadPath, path.Join(artPath, "art.jpg"))
 		fmt.Printf("transferQ solved\n")
 		url := fmt.Sprintf("http://art.not.com.cn/open/changeTaskStatus?task_id=%s", transferTask.Taskid)
 		http.Get(url)

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"path"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,7 +17,13 @@ func receiveTask(c *gin.Context) {
 }
 
 func getFile(c *gin.Context) {
-	c.File("/home/weix/work-dir/md5/src.jpg")
+	picHash := c.Param("pic-hash")
+	fmt.Println(picHash)
+	styleID := c.Param("style-id")
+	fmt.Println(styleID)
+	artPath := path.Join(workDir, picHash, styleID, "art.jpg")
+	fmt.Println(artPath)
+	c.File(artPath)
 }
 
 func main() {
@@ -22,7 +31,7 @@ func main() {
 	go taskQueue.tDownload()
 	go taskQueue.tTransferArt()
 	r := gin.Default()
-	r.POST("/transfer-to-art/task", receiveTask)
-	r.GET("/transfer-to-art/pic-hash/style", getFile)
+	r.POST("/transfer-to-art/add-task", receiveTask)
+	r.GET("/transfer-to-art/:pic-hash/:style-id", getFile)
 	r.Run() // listen and serve on 0.0.0.0:8080
 }

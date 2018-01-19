@@ -87,5 +87,7 @@ func (taskQ TaskQueue) tTransferArt() {
 		transferTask := <-taskQ.transferQ
 		fmt.Printf("transferring %v with style %v\n", transferTask.PicURL, transferTask.Style)
 		fmt.Printf("transferQ solved\n")
+		url := fmt.Sprintf("http://art.not.com.cn/open/changeTaskStatus?task_id=%s", transferTask.Taskid)
+		http.Get(url)
 	}
 }

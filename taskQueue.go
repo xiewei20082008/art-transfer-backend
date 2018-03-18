@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"os/exec"
+	"log"
 )
 
 type Task struct {
@@ -36,6 +38,20 @@ func copy(src string, dst string) {
 	defer destFile.Close()
 	io.Copy(destFile, srcFile) // check first var for number of bytes copied
 	destFile.Sync()
+}
+
+func transfer(src string, dst string, style string) {
+	execution := "/home/ubuntu/src-code/fast-style-transfer/evaluate.py"
+	checkpoint := path.Join("/home/ubuntu/src-code/style",style,"style.ckpt")
+	cmd := exec.Command("/usr/bin/python3", execution,
+		"--checkpoint", checkpoint,
+		"--in-path", src,
+		"--out-path", dst)
+	cmd.Dir = "/home/ubuntu/src-code/fast-style-transfer"
+	err := cmd.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func downloadFile(picURL string, picHash string) (bool, error) {
@@ -99,7 +115,7 @@ func (taskQ TaskQueue) tTransferArt() {
 		os.MkdirAll(artPath, os.ModePerm)
 		downloadDir := path.Join(workDir, transferTask.PicHash)
 		downloadPath := path.Join(downloadDir, "src.jpg")
-		copy(downloadPath, path.Join(artPath, "art.jpg"))
+		transfer(downloadPath, path.Join(artPath, "art.jpg"), transferTask.Style)
 		fmt.Printf("transferQ solved\n")
 		url := fmt.Sprintf("http://art.not.com.cn/open/changeTaskStatus?task_id=%s", transferTask.Taskid)
 		http.Get(url)

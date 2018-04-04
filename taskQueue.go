@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"os/exec"
+	"time"
 	"log"
 )
 
@@ -115,8 +116,11 @@ func (taskQ TaskQueue) tTransferArt() {
 		os.MkdirAll(artPath, os.ModePerm)
 		downloadDir := path.Join(workDir, transferTask.PicHash)
 		downloadPath := path.Join(downloadDir, "src.jpg")
+		fmt.Printf("Starting transfer\n")
+		fmt.Println(time.Now().Format("2008-01-01 11:11:11"))
 		transfer(downloadPath, path.Join(artPath, "art.jpg"), transferTask.Style)
-		fmt.Printf("transferQ solved\n")
+		fmt.Println(time.Now().Format("2008-01-01 11:11:11"))
+		fmt.Printf("!Done: transfer\n")
 		url := fmt.Sprintf("http://art.not.com.cn/open/changeTaskStatus?task_id=%s", transferTask.Taskid)
 		http.Get(url)
 	}

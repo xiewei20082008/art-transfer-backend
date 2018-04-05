@@ -8,7 +8,6 @@ import (
 	"path"
 	"os/exec"
 	"time"
-	"log"
 )
 
 type Task struct {
@@ -41,7 +40,7 @@ func copy(src string, dst string) {
 	destFile.Sync()
 }
 
-func transfer(src string, dst string, style string) {
+func transfer(src string, dst string, style string) (bool, error) {
 	execution := "/home/ubuntu/src-code/fast-style-transfer/evaluate.py"
 	checkpoint := path.Join("/home/ubuntu/src-code/style",style,"style.ckpt")
 	cmd := exec.Command("/usr/bin/python3", execution,
@@ -51,8 +50,9 @@ func transfer(src string, dst string, style string) {
 	cmd.Dir = "/home/ubuntu/src-code/fast-style-transfer"
 	err := cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		return false, err
 	}
+	return true, err
 }
 
 func downloadFile(picURL string, picHash string) (bool, error) {
@@ -117,9 +117,13 @@ func (taskQ TaskQueue) tTransferArt() {
 		downloadDir := path.Join(workDir, transferTask.PicHash)
 		downloadPath := path.Join(downloadDir, "src.jpg")
 		fmt.Printf("Starting transfer\n")
-		fmt.Println(time.Now().Format("2008-01-01 11:11:11"))
-		transfer(downloadPath, path.Join(artPath, "art.jpg"), transferTask.Style)
-		fmt.Println(time.Now().Format("2008-01-01 11:11:11"))
+		fmt.Println(time.Now())
+		_, err := transfer(downloadPath, path.Join(artPath, "art.jpg"), transferTask.Style)
+		if err!=nil {
+			fmt.Printf("transfer error\n")
+			continue
+		}
+		fmt.Println(time.Now())
 		fmt.Printf("!Done: transfer\n")
 		url := fmt.Sprintf("http://art.not.com.cn/open/changeTaskStatus?task_id=%s", transferTask.Taskid)
 		http.Get(url)
